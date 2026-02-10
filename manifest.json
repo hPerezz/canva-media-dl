@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Canva Media Downloader",
+  "version": "1.3.0",
+  "description": "Download images and videos you have access to from Canva.",
+  "permissions": ["contextMenus", "downloads", "activeTab"],
+  "host_permissions": ["https://media.canva.com/*", "https://*.canva.com/*"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Download media"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://*.canva.com/*"],
+      "js": ["content.js"]
+    }
+  ]
+}

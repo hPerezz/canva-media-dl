@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Download media</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 12px; width: 320px; }
+      .title { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+      .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .card { border: 1px solid #eee; border-radius: 6px; padding: 6px; cursor: pointer; background: #fff; }
+      .thumb { width: 100%; height: 90px; object-fit: cover; border-radius: 4px; background: #111; }
+      .hint { margin-top: 8px; font-size: 12px; color: #555; }
+      .empty { font-size: 12px; color: #666; }
+    </style>
+  </head>
+  <body>
+    <div class="title">Mídias encontradas</div>
+    <div id="grid" class="grid"></div>
+    <div id="empty" class="empty" style="display:none;">Nenhuma mídia do Canva encontrada nesta página.</div>
+    <div class="hint">Clique na miniatura para salvar. Apenas conteúdo que você tem direito de usar.</div>
+    <script src="popup.js"></script>
+  </body>
+</html>
