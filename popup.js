@@ -25,50 +25,55 @@ function sanitizeFilename(name) {
   return name.replace(/[^a-zA-Z0-9._-]/g, "_");
 }
 
-function download(url) {
-  const ext = guessExtension(url);
-  const filename = sanitizeFilename(`canva-media.${ext}`);
-  chrome.downloads.download({
-    url,
-    filename,
-    conflictAction: "uniquify",
-    saveAs: true
-  });
+let activeTabId = null;
+
+function download(item) {
+  if (!activeTabId) return;
+
+  chrome.runtime.sendMessage(
+    {
+      type: "download",
+      tabId: activeTabId,
+      url: item.url,
+      mediaType: item.type || "media",
+      name: item.name || "",
+      downloadStrategy: item.downloadStrategy || "direct"
+    },
+    (response) => {
+      if (chrome.runtime.lastError) {
+        window.alert(chrome.runtime.lastError.message);
+        return;
+      }
+
+      if (response && response.ok === false && !response.cancelled) {
+        window.alert(response.error || "Falha ao baixar a midia.");
+      }
+    }
+  );
 }
 
-function isVideo(url) {
-  const upper = url.toUpperCase();
-  if (upper.includes("FORMAT:MP4")) return true;
-  if (upper.includes("FORMAT:WEBM")) return true;
-  if (upper.includes("FORMAT:MOV")) return true;
-
-  try {
-    const u = new URL(url);
-    const pathname = u.pathname.toLowerCase();
-    return pathname.endsWith(".mp4") || pathname.endsWith(".webm") || pathname.endsWith(".mov");
-  } catch (_) {
-    return false;
-  }
-}
-
-function render(urls) {
+function render(mediaItems) {
   const grid = document.getElementById("grid");
   const empty = document.getElementById("empty");
 
   grid.innerHTML = "";
-  if (!urls || urls.length === 0) {
+  if (!mediaItems || mediaItems.length === 0) {
     empty.style.display = "block";
     return;
   }
 
   empty.style.display = "none";
 
-  for (const url of urls) {
+  for (const item of mediaItems) {
+    const mediaType = item.type || "media";
+    const url = item.url;
+    if (!url) continue;
+
     const card = document.createElement("div");
     card.className = "card";
     card.title = url;
 
-    if (isVideo(url)) {
+    if (mediaType === "video" && item.downloadStrategy !== "page") {
       const video = document.createElement("video");
       video.className = "thumb";
       video.src = url;
@@ -76,14 +81,41 @@ function render(urls) {
       video.loop = true;
       video.playsInline = true;
       video.preload = "metadata";
+      video.autoplay = true;
       card.appendChild(video);
+    } else if (item.previewUrl) {
+      const img = document.createElement("img");
+      img.className = "thumb";
+      img.src = item.previewUrl;
+      card.appendChild(img);
+    } else if (mediaType === "video") {
+      const placeholder = document.createElement("div");
+      placeholder.className = "thumb placeholder";
+
+      const label = document.createElement("strong");
+      label.textContent = "VIDEO";
+      placeholder.appendChild(label);
+
+      const detail = document.createElement("span");
+      detail.textContent = item.name || "Blob video";
+      placeholder.appendChild(detail);
+
+      card.appendChild(placeholder);
     } else {
       const img = document.createElement("img");
       img.className = "thumb";
       img.src = url;
       card.appendChild(img);
     }
-    card.addEventListener("click", () => download(url));
+
+    if (item.name) {
+      const name = document.createElement("div");
+      name.className = "name";
+      name.textContent = item.name;
+      card.appendChild(name);
+    }
+
+    card.addEventListener("click", () => download(item));
 
     grid.appendChild(card);
   }
@@ -97,12 +129,14 @@ function loadMedia() {
       return;
     }
 
+    activeTabId = tab.id;
+
     chrome.tabs.sendMessage(tab.id, { type: "getMedia" }, (response) => {
       if (chrome.runtime.lastError || !response) {
         render([]);
         return;
       }
-      render(response.urls || []);
+      render(response.media || []);
     });
   });
 }
